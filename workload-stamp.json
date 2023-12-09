@@ -12,19 +12,21 @@
         "droneSchedulerCosmosDbName": "[concat('ds-',uniqueString(resourceGroup().id))]",
         "deliveryRedisName": "[concat('dr-',uniqueString(resourceGroup().id))]",
         "deliveryKeyVaultName": "[concat('dkv-',uniqueString(resourceGroup().id))]",
-        "packageKeyVaultName": "[concat('pkkv-',uniqueString(resourceGroup().id))]",
+        "deliveryIdName": "dev-d",
+        "workflowIdName": "dev-wf",
+        "droneSchedulerIdName": "dev-ds",
         "ingestionSBNamespace": "[concat('i-',uniqueString(resourceGroup().id))]",
         "ingestionSBNamespaceSKU": "Premium",
         "ingestionSBNamespaceTier": "Premium",
         "ingestionSBName": "[concat('i-',uniqueString(resourceGroup().id))]",
         "ingestionServiceAccessKeyName": "IngestionServiceAccessKey",
-        "ingestionKeyVaultName": "[concat('ingkv-',uniqueString(resourceGroup().id))]",
         "droneSchedulerKeyVaultName": "[concat('ds-',uniqueString(resourceGroup().id))]",
         "readerRole": "[concat(subscription().Id, '/providers/Microsoft.Authorization/roleDefinitions/acdd72a7-3385-48ef-bd42-f606fba81ae7')]",
         "workflowKeyVaultName": "[concat('wf-',uniqueString(resourceGroup().id))]",
         "workflowServiceAccessKeyName": "WorkflowServiceAccessKey",
         "appInsightsName": "[concat('ai-', uniqueString(resourceGroup().id))]",
         "nestedACRDeploymentName": "[concat(resourceGroup().name, '-acr-deployment')]"
+
     },
     "parameters": {
         "location": {
@@ -78,7 +80,7 @@
                 "southeastasia"
             ],
             "metadata": {
-                "description": "For Azure resources that support native geo-redundancy, provide the location the redundant service will have its secondary. Should be different than the location parameter and ideally should be a paired region - https://learn.microsoft.com/azure/best-practices-availability-paired-regions. This region does not need to support availability zones."
+                "description": "For Azure resources that support native geo-redundancy, provide the location the redundant service will have its secondary. Should be different than the location parameter and ideally should be a paired region - https://docs.microsoft.com/en-us/azure/best-practices-availability-paired-regions. This region does not need to support availability zones."
             }
         },
         "droneSchedulerPrincipalId": {
@@ -90,11 +92,11 @@
         "deliveryPrincipalId": {
             "type": "string"
         },
-        "ingestionPrincipalId": {
-            "type": "string"
-        },
-        "packagePrincipalId": {
-            "type": "string"
+        "acrResourceGroupName": {
+            "type": "string",
+            "metadata": {
+                "description": "the resource group name of the Azure Container Registry"
+            }
         }
     },
     "resources": [
@@ -104,7 +106,7 @@
             "apiVersion": "2018-05-01",
             "dependsOn": [
             ],
-            "resourceGroup": "rg-shipping-dronedelivery-acr",
+            "resourceGroup": "[parameters('acrResourceGroupName')]",
             "properties": {
                 "mode": "Incremental",
                 "template": {
@@ -419,118 +421,6 @@
         },
         {
             "type": "Microsoft.KeyVault/vaults",
-            "name": "[variables('packageKeyVaultName')]",
-            "apiVersion": "2019-09-01",
-            "location": "[resourceGroup().location]",
-            "dependsOn": [],
-            "tags": {
-                "displayName": "Package Key Vault",
-                "app": "fabrikam-package"
-            },
-            "properties": {
-                "sku": {
-                    "family": "A",
-                    "name": "standard"
-                },
-                "tenantId": "[subscription().tenantId]",
-                "networkAcls": {
-                    "bypass": "AzureServices",
-                    "defaultAction": "Allow",
-                    "virtualNetworkRules": [
-                    ]
-                },
-                "accessPolicies": [
-                    {
-                        "tenantId": "[subscription().tenantId]",
-                        "objectId": "[parameters('packagePrincipalId')]",
-                        "permissions": {
-                            "secrets": [
-                                "get",
-                                "list"
-                            ]
-                        }
-                    }
-                ]
-            },
-            "resources": [
-                {
-                    "type": "secrets",
-                    "name": "ApplicationInsights--InstrumentationKey",
-                    "apiVersion": "2019-09-01",
-                    "properties": {
-                        "value": "[reference(resourceId('Microsoft.Insights/components', variables('appInsightsName')),'2015-05-01').InstrumentationKey]"
-                    },
-                    "dependsOn": [
-                        "[resourceId('Microsoft.KeyVault/vaults', variables('packageKeyVaultName'))]",
-                        "[resourceId('Microsoft.Insights/components', variables('appInsightsName'))]"
-                    ]
-                }
-            ]
-        },
-        {
-            "type": "Microsoft.KeyVault/vaults",
-            "name": "[variables('ingestionKeyVaultName')]",
-            "apiVersion": "2019-09-01",
-            "location": "[resourceGroup().location]",
-            "dependsOn": [],
-            "tags": {
-                "displayName": "Ingestion Key Vault",
-                "app": "fabrikam-ingestion"
-            },
-            "properties": {
-                "sku": {
-                    "family": "A",
-                    "name": "standard"
-                },
-                "tenantId": "[subscription().tenantId]",
-                "networkAcls": {
-                    "bypass": "AzureServices",
-                    "defaultAction": "Allow",
-                    "virtualNetworkRules": [
-                    ]
-                },
-                "accessPolicies": [
-                    {
-                        "tenantId": "[subscription().tenantId]",
-                        "objectId": "[parameters('ingestionPrincipalId')]",
-                        "permissions": {
-                            "secrets": [
-                                "get",
-                                "list"
-                            ]
-                        }
-                    }
-                ]
-            },
-            "resources": [
-                {
-                    "type": "secrets",
-                    "name": "ApplicationInsights--InstrumentationKey",
-                    "apiVersion": "2019-09-01",
-                    "properties": {
-                        "value": "[reference(resourceId('Microsoft.Insights/components', variables('appInsightsName')),'2015-05-01').InstrumentationKey]"
-                    },
-                    "dependsOn": [
-                        "[resourceId('Microsoft.KeyVault/vaults', variables('ingestionKeyVaultName'))]",
-                        "[resourceId('Microsoft.Insights/components', variables('appInsightsName'))]"
-                    ]
-                },
-                {
-                    "type": "secrets",
-                    "name": "Queue--Key",
-                    "apiVersion": "2019-09-01",
-                    "properties": {
-                        "value": "[listKeys(resourceId('Microsoft.ServiceBus/namespaces/authorizationRules', variables('ingestionSBNamespace'), variables('ingestionServiceAccessKeyName')), '2017-04-01').primaryKey]"
-                    },
-                    "dependsOn": [
-                        "[resourceId('Microsoft.KeyVault/vaults', variables('ingestionKeyVaultName'))]",
-                        "[resourceId('Microsoft.ServiceBus/namespaces/authorizationRules', variables('ingestionSBNamespace'), variables('ingestionServiceAccessKeyName'))]"
-                    ]
-                }
-            ]
-        },
-        {
-            "type": "Microsoft.KeyVault/vaults",
             "name": "[variables('droneSchedulerKeyVaultName')]",
             "apiVersion": "2019-09-01",
             "location": "[resourceGroup().location]",
@@ -781,7 +671,7 @@
         {
             "type": "Microsoft.KeyVault/vaults/providers/roleAssignments",
             "apiVersion": "2021-04-01-preview",
-            "name": "[concat(variables('deliveryKeyVaultName'), '/Microsoft.Authorization/', guid(concat('uid-delivery', resourceGroup().id), variables('readerRole')))]",
+            "name": "[concat(variables('deliveryKeyVaultName'), '/Microsoft.Authorization/', guid(concat(variables('deliveryIdName'), resourceGroup().id), variables('readerRole')))]",
             "dependsOn": [
                 "[resourceId('Microsoft.KeyVault/vaults', variables('deliveryKeyVaultName'))]"
             ],
@@ -801,7 +691,7 @@
         {
             "type": "Microsoft.KeyVault/vaults/providers/roleAssignments",
             "apiVersion": "2021-04-01-preview",
-            "name": "[concat(variables('workflowKeyVaultName'), '/Microsoft.Authorization/', guid(concat('uid-workflow', resourceGroup().id), variables('readerRole')))]",
+            "name": "[concat(variables('workflowKeyVaultName'), '/Microsoft.Authorization/', guid(concat(variables('workflowIdName'), resourceGroup().id), variables('readerRole')))]",
             "dependsOn": [
                 "[resourceId('Microsoft.KeyVault/vaults', variables('workflowKeyVaultName'))]"
             ],
@@ -821,7 +711,7 @@
         {
             "type": "Microsoft.KeyVault/vaults/providers/roleAssignments",
             "apiVersion": "2021-04-01-preview",
-            "name": "[concat(variables('droneSchedulerKeyVaultName'), '/Microsoft.Authorization/', guid(concat('uid-dronescheduler', resourceGroup().id), variables('readerRole')))]",
+            "name": "[concat(variables('droneSchedulerKeyVaultName'), '/Microsoft.Authorization/', guid(concat(variables('droneSchedulerIdName'), resourceGroup().id), variables('readerRole')))]",
             "dependsOn": [
                 "[resourceId('Microsoft.KeyVault/vaults', variables('droneSchedulerKeyVaultName'))]"
             ],
@@ -835,46 +725,6 @@
                 "roleDefinitionId": "[variables('readerRole')]",
                 "principalId": "[parameters('droneSchedulerPrincipalId')]",
                 "scope": "[resourceId('Microsoft.KeyVault/vaults', variables('droneSchedulerKeyVaultName'))]",
-                "principalType": "ServicePrincipal"
-            }
-        },
-        {
-            "type": "Microsoft.KeyVault/vaults/providers/roleAssignments",
-            "apiVersion": "2021-04-01-preview",
-            "name": "[concat(variables('ingestionKeyVaultName'), '/Microsoft.Authorization/', guid(concat('uid-ingestion', resourceGroup().id), variables('readerRole')))]",
-            "dependsOn": [
-                "[resourceId('Microsoft.KeyVault/vaults', variables('ingestionKeyVaultName'))]"
-            ],
-            "comments": "Grant the Fabrikam ingestion app Manage Identity with reader role permissions over KeyVault",
-            "tags": {
-                "displayName": "Fabrikam ingestion app RBAC access for KeyVault",
-                "what": "ingestion-identity-rbac-reader-to-keyvault",
-                "app": "fabrikam-ingestion"
-            },
-            "properties": {
-                "roleDefinitionId": "[variables('readerRole')]",
-                "principalId": "[parameters('ingestionPrincipalId')]",
-                "scope": "[resourceId('Microsoft.KeyVault/vaults', variables('ingestionKeyVaultName'))]",
-                "principalType": "ServicePrincipal"
-            }
-        },
-        {
-            "type": "Microsoft.KeyVault/vaults/providers/roleAssignments",
-            "apiVersion": "2021-04-01-preview",
-            "name": "[concat(variables('packageKeyVaultName'), '/Microsoft.Authorization/', guid(concat('uid-package', resourceGroup().id), variables('readerRole')))]",
-            "dependsOn": [
-                "[resourceId('Microsoft.KeyVault/vaults', variables('packageKeyVaultName'))]"
-            ],
-            "comments": "Grant the Fabrikam package app Manage Identity with reader role permissions over KeyVault",
-            "tags": {
-                "displayName": "Fabrikam package app RBAC access for KeyVault",
-                "what": "package-identity-rbac-reader-to-keyvault",
-                "app": "fabrikam-package"
-            },
-            "properties": {
-                "roleDefinitionId": "[variables('readerRole')]",
-                "principalId": "[parameters('packagePrincipalId')]",
-                "scope": "[resourceId('Microsoft.KeyVault/vaults', variables('packageKeyVaultName'))]",
                 "principalType": "ServicePrincipal"
             }
         }
@@ -922,22 +772,6 @@
         },
         "workflowKeyVaultName": {
             "value": "[variables('workflowKeyVaultName')]",
-            "type": "string"
-        },
-        "deliveryKeyVaultName": {
-            "value": "[variables('deliveryKeyVaultName')]",
-            "type": "string"
-        },
-        "droneSchedulerKeyVaultName": {
-            "value": "[variables('droneSchedulerKeyVaultName')]",
-            "type": "string"
-        },
-        "ingestionKeyVaultName": {
-            "value": "[variables('ingestionKeyVaultName')]",
-            "type": "string"
-        },
-        "packageKeyVaultName": {
-            "value": "[variables('packageKeyVaultName')]",
             "type": "string"
         },
         "appInsightsName": {
