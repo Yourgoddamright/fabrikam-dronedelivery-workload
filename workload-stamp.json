@@ -28,7 +28,7 @@
     },
     "parameters": {
         "location": {
-            "defaultValue": "eastus2",
+            "defaultValue": "southeastasia",
             "type": "string",
             "allowedValues": [
                 "australiaeast",
