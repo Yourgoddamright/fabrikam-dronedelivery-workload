@@ -2,16 +2,23 @@
     "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "0.0.0.3",
     "parameters": {
+        "resourceGroupName": {
+            "type": "string"
+        },
         "resourceGroupLocation": {
             "type": "string",
             "defaultValue": "southeastasia"
         }
     },
     "variables": {
+        "deliveryIdName": "dev-d",
+        "workflowIdName": "dev-wf",
+        "droneSchedulerIdName": "dev-ds",
+        "acrResourceGroupName": "[concat(parameters('resourceGroupName'),'-acr')]"
     },
     "resources": [
         {
-            "name": "rg-shipping-dronedelivery",
+            "name": "[parameters('resourceGroupName')]",
             "location": "[parameters('resourceGroupLocation')]",
             "type": "Microsoft.Resources/resourceGroups",
             "apiVersion": "2018-05-01",
@@ -20,7 +27,7 @@
             }
         },
         {
-            "name": "rg-shipping-dronedelivery-acr",
+            "name": "[variables('acrResourceGroupName')]",
             "type": "Microsoft.Resources/resourceGroups",
             "apiVersion": "2018-05-01",
             "location": "[parameters('resourceGroupLocation')]",
@@ -32,9 +39,9 @@
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2018-05-01",
             "name": "workload-stamp-prereqs-dep",
-            "resourceGroup": "rg-shipping-dronedelivery",
+            "resourceGroup": "[parameters('resourceGroupName')]",
             "dependsOn": [
-                "[resourceId('Microsoft.Resources/resourceGroups/', 'rg-shipping-dronedelivery')]"
+                "[resourceId('Microsoft.Resources/resourceGroups/', parameters('resourceGroupName'))]"
             ],
             "properties": {
                 "mode": "Incremental",
@@ -44,7 +51,7 @@
                     "resources": [
                         {
                             "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
-                            "name": "uid-workflow",
+                            "name": "[variables('workflowIdName')]",
                             "apiVersion": "2015-08-31-preview",
                             "location": "[parameters('resourceGroupLocation')]",
                             "tags": {
@@ -56,7 +63,7 @@
                         },
                         {
                             "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
-                            "name": "uid-delivery",
+                            "name": "[variables('deliveryIdName')]",
                             "apiVersion": "2015-08-31-preview",
                             "location": "[parameters('resourceGroupLocation')]",
                             "tags": {
@@ -68,7 +75,7 @@
                         },
                         {
                             "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
-                            "name": "uid-dronescheduler",
+                            "name": "[variables('droneSchedulerIdName')]",
                             "apiVersion": "2015-08-31-preview",
                             "location": "[parameters('resourceGroupLocation')]",
                             "tags": {
@@ -77,38 +84,30 @@
                                 "reason": "aad-pod-identity",
                                 "app": "fabrikam-dronescheduler"
                             }
-                        },
-                        {
-                            "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
-                            "name": "uid-ingestion",
-                            "apiVersion": "2015-08-31-preview",
-                            "location": "[parameters('resourceGroupLocation')]",
-                            "tags": {
-                                "displayName": "ingestion managed identity",
-                                "what": "rbac",
-                                "reason": "aad-pod-identity",
-                                "app": "fabrikam-ingestion"
-                            }
-                        },
-                        {
-                            "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
-                            "name": "uid-package",
-                            "apiVersion": "2015-08-31-preview",
-                            "location": "[parameters('resourceGroupLocation')]",
-                            "tags": {
-                                "displayName": "package managed identity",
-                                "what": "rbac",
-                                "reason": "aad-pod-identity",
-                                "app": "fabrikam-package"
-                            }
                         }
                     ],
                     "outputs": {
+                        "deliveryIdName": {
+                            "value": "[variables('deliveryIdName')]",
+                            "type": "string"
+                        },
+                        "droneSchedulerIdName": {
+                            "value": "[variables('droneSchedulerIdName')]",
+                            "type": "string"
+                        },
+                        "workflowIdName": {
+                            "value": "[variables('workflowIdName')]",
+                            "type": "string"
+                        }
                     }
                 }
             }
         }
     ],
     "outputs": {
+        "acrResourceGroupName": {
+            "value": "[variables('acrResourceGroupName')]",
+            "type": "string"
+        }
     }
 }
